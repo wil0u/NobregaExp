@@ -79,7 +79,7 @@ class LimeRSExplainer():
         # get predictions from original complex model
         # TODO change to use our black box model, problem item and user is need to match ....
         yss = np.array(rec_model.predict(neighborhood_df))
-        slice = self.make_black_box_slice(U, sigma, Vt, user_means, np.array(list(set(neighborhood_df["user_id"]))))
+        slice = self.make_black_box_slice(U, sigma, Vt, user_means, np.array(list(map(int,set(neighborhood_df["user_id"])))))
 
         # for classification, the model needs to provide a list of tuples - classes along with prediction probabilities
         if self.mode == "classification":
