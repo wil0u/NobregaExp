@@ -6,6 +6,12 @@ from sklearn.utils import check_random_state
 
 from src.dataset import Dataset
 
+DATAFOLDER = "/home/alex/PycharmProjects/NobregaExp/experiment/"
+U = np.loadtxt(DATAFOLDER + "U.gz")
+sigma = np.loadtxt(DATAFOLDER + "sigma.gz")
+Vt = np.loadtxt(DATAFOLDER + "Vt.gz")
+user_means = np.loadtxt(DATAFOLDER + 'user_means.gz')
+
 
 class LimeRSExplainer():
 
@@ -45,6 +51,10 @@ class LimeRSExplainer():
     def convert_and_round(values):
         return ['%.2f' % v for v in values]
 
+    @staticmethod
+    def make_black_box_slice(U, sigma, Vt, means, indexes):
+        return (U[indexes] @ sigma @ Vt) + np.tile(means[indexes].reshape(len(indexes), 1), (1, Vt.shape[1]))
+
     def explain_instance(self,
                          instance,
                          rec_model,
@@ -67,7 +77,9 @@ class LimeRSExplainer():
         ).ravel()
 
         # get predictions from original complex model
+        # TODO change to use our black box model, problem item and user is need to match ....
         yss = np.array(rec_model.predict(neighborhood_df))
+        slice = self.make_black_box_slice(U, sigma, Vt, user_means, np.array(list(set(neighborhood_df["user_id"]))))
 
         # for classification, the model needs to provide a list of tuples - classes along with prediction probabilities
         if self.mode == "classification":

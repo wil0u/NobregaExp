@@ -80,13 +80,13 @@ def main():
 
 
     '''debut de mon code :'''
-    df_input_file = pd.read_csv('/media/wilou/Elements/developmentNobra/exp_willeme.csv',sep=";",header=0)
+    df_input_file = pd.read_csv('C:\\Users\\achan\\Downloads\\exp_willeme.csv',sep=";",header=0)
     userIds = [uid for uid in df_input_file['userId']]
     listesVoisins = [eval(listeVoisins) for listeVoisins in df_input_file['voisins']]
     listesDistances = [eval(listeDistances) for listeDistances in df_input_file['distances']]
     trainItems = rec_model.dataset.training_df['item_id'].to_list()
     testItems = rec_model.dataset.test_df['item_id'].to_list()
-    all_films = pd.read_csv('/media/wilou/Elements/developmentNobra/ml-latest-small/movies.csv')['movieId'].tolist()
+    all_films = pd.read_csv('C:\\Users\\achan\\PycharmProjects\\LIRE\\ml-latest-small\\movies.csv')['movieId'].tolist()
     movieIds = random.choices(testItems + trainItems, k=4)
     dicti_pred_black_box_white_box = {}
 

@@ -8,8 +8,8 @@ import pandas as pd
 # path constants
 from src.dataset import Dataset
 
-HOME = '/media/wilou/Elements/developmentNobra/'
-DEFAULT_DATA_FOLDER = '/media/wilou/Elements/developmentNobra/data/'
+HOME = '/home/alex/PycharmProjects/NobregaExp'
+DEFAULT_DATA_FOLDER = '/home/alex/PycharmProjects/NobregaExp/output'
 DEFAULT_OUTPUT_FOLDER = os.path.join(HOME, "output")
 
 predictions_filename = "predictions"
