@@ -9,7 +9,7 @@ import pandas as pd
 from src.dataset import Dataset
 
 HOME = '/home/alex/PycharmProjects/NobregaExp'
-DEFAULT_DATA_FOLDER = '/home/alex/PycharmProjects/NobregaExp/output'
+DEFAULT_DATA_FOLDER = '/home/alex/PycharmProjects/NobregaExp/data'
 DEFAULT_OUTPUT_FOLDER = os.path.join(HOME, "output")
 
 predictions_filename = "predictions"
