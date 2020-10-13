@@ -8,7 +8,7 @@ from scipy.sparse import csr_matrix
 
 from src.dataset import Dataset
 
-black_box_folder = "C:\\Users\\achan\\PycharmProjects\\LIRE\\temp\\"
+black_box_folder = "/home/alex/PycharmProjects/NobregaExp/experiment/"
 U = np.loadtxt(black_box_folder + "U.gz")
 sigma = np.loadtxt(black_box_folder + "sigma.gz")
 Vt = np.loadtxt(black_box_folder + "Vt.gz")
@@ -47,7 +47,7 @@ class LimeRSExplainer():
 
         self.n_rows = training_df.shape[0]
         # TODO hardcoded 20M dataset
-        self.training_df = pd.read_csv(black_box_folder + "ratings.csv", header=0,
+        self.training_df = pd.read_csv(black_box_folder + "ratings.csv",
                                        names=['user_id', 'item_id', 'rating', 'timestamp']).drop(labels=["rating", "timestamp"], axis='columns')
 
         self.user_freq = self.training_df['user_id'].value_counts(normalize=True)
