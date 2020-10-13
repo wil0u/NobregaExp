@@ -173,3 +173,46 @@ class LimeRSExplainer():
         samples_df = samples_df[['user_id', 'item_id']]
 
         return samples_df
+
+    def generate_neighborhood_no_bias(self, instance, entity, num_samples):
+        """
+        This version of the method avoids considering the value to predict in the training set
+        """
+        samples = list()
+        # samples.append({"user_id": str(instance.user_id), "item_id": str(instance.item_id)})
+        if entity == 'user':
+            list_candidate_users = self.user_freq.index.tolist()
+            list_freq_U_corrected = self.user_freq.values.tolist()
+            if instance.user_id in list_candidate_users:
+                index = np.argwhere(list_candidate_users == instance.user_id)
+                list_candidate_users.remove(instance.user_id)
+                list_freq_U_corrected.remove(index)
+
+            sample_users = np.random.choice(list_candidate_users, num_samples, replace=False,
+                                            p=list_freq_U_corrected)
+            for u in sample_users:
+                samples.append({"user_id": str(u), "item_id": str(instance.item_id)})
+
+        elif entity == 'item':
+            list_candidate_items = self.item_freq.index.tolist()
+            list_freq_I_corrected = self.item_freq.values.tolist()
+            if instance.item_id in list_candidate_items:
+                index = np.argwhere(list_candidate_items == instance.item_id)
+                list_candidate_items.remove(instance.item_id)
+                list_freq_I_corrected.remove(index)
+
+            sample_items = np.random.choice(list_candidate_items, num_samples, replace=False,
+                                            p=list_freq_I_corrected)
+            for i in sample_items:
+                samples.append({"user_id": str(instance.user_id), "item_id": str(i)})
+        else:
+            # warning: does not guarantee that in the end we have num_samples training data instances
+            sample_rows = np.random.choice(range(self.n_rows), num_samples, replace=False)
+            for s in self.training_df.iloc[sample_rows].itertuples():
+                if s.user_id != instance.user_id and s.item_id != instance.item_id:
+                    samples.append({"user_id": str(s.user_id), "item_id": str(s.item_id)})
+
+        samples_df = pd.DataFrame(samples)
+        samples_df = samples_df[['user_id', 'item_id']]
+
+        return samples_df
