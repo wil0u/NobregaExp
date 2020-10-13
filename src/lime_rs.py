@@ -1,10 +1,19 @@
 import numpy as np
 import pandas as pd
 import sklearn
+import pickle
 from lime import lime_base, explanation
 from sklearn.utils import check_random_state
+from scipy.sparse import csr_matrix
 
 from src.dataset import Dataset
+
+black_box_folder = "C:\\Users\\achan\\PycharmProjects\\LIRE\\temp\\"
+U = np.loadtxt(black_box_folder + "U.gz")
+sigma = np.loadtxt(black_box_folder + "sigma.gz")
+Vt = np.loadtxt(black_box_folder + "Vt.gz")
+user_means = np.loadtxt(black_box_folder + 'user_means.gz')
+iid_map = pickle.load(open(black_box_folder + "iid_map.p", mode="rb"))
 
 
 class LimeRSExplainer():
@@ -37,13 +46,47 @@ class LimeRSExplainer():
         self.categorical_features = list(range(feature_names.shape[0]))
 
         self.n_rows = training_df.shape[0]
-        self.training_df = training_df
-        self.user_freq = training_df['user_id'].value_counts(normalize=True)
-        self.item_freq = training_df['item_id'].value_counts(normalize=True)
+        # TODO hardcoded 20M dataset
+        self.training_df = pd.read_csv(black_box_folder + "ratings.csv", header=0,
+                                       names=['user_id', 'item_id', 'rating', 'timestamp']).drop(labels=["rating", "timestamp"], axis='columns')
+
+        self.user_freq = self.training_df['user_id'].value_counts(normalize=True)
+        self.item_freq = self.training_df['item_id'].value_counts(normalize=True)
+
+    @staticmethod
+    def read_sparse(rfile):
+        indptr = [0]
+        indices = []
+        data = []
+        vocabulary = {}
+
+        curr_id = 1
+
+        with open(rfile) as f:
+            skip = 1
+            for l in f:
+                if skip:
+                    skip -= 1
+                    continue
+
+                l = l.split(",")
+                if int(l[0]) != curr_id:
+                    # new user
+                    indptr.append(len(indices))
+                    curr_id = int(l[0])
+                index = vocabulary.setdefault(int(l[1]), len(vocabulary))
+                indices.append(index)
+                data.append(float(l[2]))
+            indptr.append(len(indices))  # one last time
+        return csr_matrix((data, indices, indptr), dtype=float), vocabulary
 
     @staticmethod
     def convert_and_round(values):
         return ['%.2f' % v for v in values]
+
+    @staticmethod
+    def make_black_box_slice(U, sigma, Vt, means, indexes):
+        return (U[indexes] @ sigma @ Vt) + np.tile(means[indexes].reshape(len(indexes), 1), (1, Vt.shape[1]))
 
     def explain_instance(self,
                          instance,
@@ -67,25 +110,20 @@ class LimeRSExplainer():
         ).ravel()
 
         # get predictions from original complex model
-        yss = np.array(rec_model.predict(neighborhood_df))
+        # TODO change to use our black box model, problem item and user is need to match ....
+        #yss = np.array(rec_model.predict(neighborhood_df))
+        bb_iids = np.array(list(map(iid_map.__getitem__, map(int, neighborhood_df["item_id"]))))
+        slice = self.make_black_box_slice(U, sigma, Vt, user_means, np.array(list(map(int, set(neighborhood_df.user_id)))))
+        yss_svd = slice[:, bb_iids].transpose()
 
         # for classification, the model needs to provide a list of tuples - classes along with prediction probabilities
         if self.mode == "classification":
             raise NotImplementedError("LIME-RS does not currently support classifier models.")
         # for regression, the output should be a one-dimensional array of predictions
         else:
-            try:
-                assert isinstance(yss, np.ndarray) and len(yss.shape) == 1
-            except AssertionError:
-                raise ValueError("Your model needs to output single-dimensional \
-                            numpyarrays, not arrays of {} dimensions".format(yss.shape))
-
-            predicted_value = yss[0]
-            min_y = min(yss)
-            max_y = max(yss)
-
-            # add a dimension to be compatible with downstream machinery
-            yss = yss[:, np.newaxis]
+            predicted_value = slice[0, bb_iids]
+            min_y = min(yss_svd)
+            max_y = max(yss_svd)
 
         ret_exp = explanation.Explanation(domain_mapper=None,
                                           mode=self.mode,
@@ -103,7 +141,7 @@ class LimeRSExplainer():
              ret_exp.local_exp[label],
              ret_exp.score, ret_exp.local_pred) = self.base.explain_instance_with_data(
                 data,
-                yss,
+                yss_svd,
                 distances,
                 label,
                 num_features,
